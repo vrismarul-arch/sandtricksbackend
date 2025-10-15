@@ -7,6 +7,7 @@ const entrySchema = new mongoose.Schema(
     email: { type: String, required: true },
     companyName: { type: String, required: true },
     requirement: { type: String, default: "" },
+price: { type: Number, default: 0 },
 
     requirementType: {
       type: String,

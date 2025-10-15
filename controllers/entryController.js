@@ -1,21 +1,27 @@
 const Entry = require("../models/Entry");
 const supabase = require("../config/supabaseClient");
 const multer = require("multer");
+const priceList = require("../utils/priceList"); // 🧾 import price data
 
 // Multer memory storage for file uploads
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-
+/** ---------------------------
+ *  ADD NEW ENTRY
+ * --------------------------*/
 const addEntry = async (req, res) => {
   try {
     const { name, phoneNumber, email, companyName, requirement, requirementType, brands } = req.body;
 
+    // Validate required fields
     if (!name || !phoneNumber || !email || !companyName || !requirementType) {
       return res.status(400).json({ message: "All required fields must be provided" });
     }
 
-    // Handle images upload to Supabase
+    /** ---------------------------
+     *  Upload images to Supabase
+     * --------------------------*/
     let imageUrls = [];
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
@@ -30,16 +36,39 @@ const addEntry = async (req, res) => {
       }
     }
 
-    // Parse brands if JSON string
+    /** ---------------------------
+     *  Parse brands
+     * --------------------------*/
     let parsedBrands = [];
     if (brands) {
       try {
-        parsedBrands = JSON.parse(brands);
+        parsedBrands = JSON.parse(brands); // if sent as JSON string
       } catch {
-        parsedBrands = Array.isArray(brands) ? brands : [brands];
+        parsedBrands = Array.isArray(brands) ? brands : [brands]; // fallback if array
       }
     }
 
+    /** ---------------------------
+     *  Price Calculation
+     * --------------------------*/
+    let totalPrice = 0;
+    const brandPrices = [];
+
+    parsedBrands.forEach((brand) => {
+      const match = priceList.find(
+        (item) =>
+          item.product.toLowerCase() === requirementType.toLowerCase() &&
+          item.brand.toLowerCase() === brand.toLowerCase()
+      );
+      if (match) {
+        totalPrice += match.price;
+        brandPrices.push({ brand, price: match.price });
+      }
+    });
+
+    /** ---------------------------
+     *  Save to MongoDB
+     * --------------------------*/
     const newEntry = new Entry({
       name,
       phoneNumber,
@@ -48,28 +77,41 @@ const addEntry = async (req, res) => {
       requirement: requirement || "",
       requirementType,
       brands: parsedBrands,
+      brandPrices, // store price per brand
       images: imageUrls,
+      price: totalPrice, // total price
+      status: "Pending", // default status
     });
 
     await newEntry.save();
-    res.status(201).json({ message: "Entry saved successfully.", entry: newEntry });
+
+    res.status(201).json({
+      message: "Entry saved successfully.",
+      entry: newEntry,
+      totalPrice,
+    });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    console.error("Error in addEntry:", error.message);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
+/** ---------------------------
+ *  GET ALL ENTRIES
+ * --------------------------*/
 const getAllEntries = async (req, res) => {
   try {
     const entries = await Entry.find().sort({ createdAt: -1 });
     res.json(entries);
   } catch (error) {
-    console.error(error);
+    console.error("Error fetching entries:", error.message);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-/** Update status of entry */
+/** ---------------------------
+ *  UPDATE STATUS
+ * --------------------------*/
 const updateStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -84,12 +126,14 @@ const updateStatus = async (req, res) => {
 
     res.json({ message: "Status updated", entry });
   } catch (error) {
-    console.error(error);
+    console.error("Error updating status:", error.message);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-/** Delete entry */
+/** ---------------------------
+ *  DELETE ENTRY
+ * --------------------------*/
 const deleteEntry = async (req, res) => {
   try {
     const { id } = req.params;
@@ -113,7 +157,3 @@ const deleteEntry = async (req, res) => {
 };
 
 module.exports = { addEntry, getAllEntries, updateStatus, deleteEntry, upload };
-
-
-
-
