@@ -84,8 +84,8 @@ exports.getFilteredLeads = async (req, res) => {
       
       // Safeguard: Recalculate shares only if status is Completed but shares are missing
       if (status === "COMPLETED" && totalPrice > 0 && (SVJShare === 0 && VrismShare === 0)) {
-          SVJShare = +(totalPrice * 0.7).toFixed(2);
-          VrismShare = +(totalPrice * 0.3).toFixed(2);
+          SVJShare = +(totalPrice * 0.9).toFixed(2);
+          VrismShare = +(totalPrice * 0.1).toFixed(2);
       }
       
       // 3. Final standardized object values (ensuring they are numeric)
