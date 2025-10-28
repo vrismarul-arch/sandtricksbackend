@@ -106,7 +106,7 @@ exports.getFilteredLeads = async (req, res) => {
       data = data.filter(d => moment(d.submittedAt).isBetween(start, end, undefined, "[]"));
     }
     if (onSite) data = data.filter(d => (d["ON SITE VIEW"] || "").toUpperCase() === onSite.toUpperCase());
-    if (product) data = data.filter(d => (d.Product || "").toLowerCase().includes(product.toLowerCase()));
+    if (product) data = data.filter(d => (d.Products || "").toLowerCase().includes(product.toLowerCase()));
 
     res.json(data);
   } catch (err) {
