@@ -1,14 +1,10 @@
-// server.js
-
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
-
-// Routes & DB
-import entryRoutes from "./routes/entryRoutes.js";
 import connectDB from "./config/db.js";
+import entryRoutes from "./routes/entryRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -16,26 +12,24 @@ const app = express();
 // --- CORS ---
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://enquiry-from.netlify.app", // Your live frontend URL
+  "https://enquiry-from.netlify.app",
 ];
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.log("Blocked CORS for origin:", origin);
-      callback(new Error("CORS policy: This origin is not allowed"));
-    }
+    if (!origin || allowedOrigins.includes(origin)) callback(null, true);
+    else callback(new Error("CORS policy: This origin is not allowed"));
   },
   credentials: true,
+  methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
+  allowedHeaders: ["Content-Type","Authorization"]
 }));
 
-// --- JSON & URL-encoded ---
+// --- Body parsers ---
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// --- Logging ---
+// --- Logging middleware ---
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] [${req.method}] ${req.originalUrl}`);
   next();
@@ -54,7 +48,7 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-// --- DB connection ---
+// --- Connect MongoDB ---
 connectDB();
 
 // --- Start server ---
