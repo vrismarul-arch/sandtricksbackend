@@ -14,7 +14,6 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:5173",
   "https://enquiry-from.netlify.app",
-  "https://your-live-frontend.com", // replace with your live domain
 ];
 
 app.use(cors({
@@ -48,6 +47,9 @@ app.use("/uploads", express.static(uploadDir));
 
 // --- Routes ---
 app.use("/api/entries", entryRoutes);
+
+// --- Preflight for multipart POST ---
+app.options("/api/entries/add", cors());
 
 // --- Health check ---
 app.get("/health", (req, res) => {

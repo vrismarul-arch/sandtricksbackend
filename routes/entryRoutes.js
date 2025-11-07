@@ -11,9 +11,6 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// --- Preflight OPTIONS ---
-router.options("/add", (req, res) => res.sendStatus(200));
-
 // --- POST route ---
 router.post("/add", upload.array("images", 5), addEntry);
 
