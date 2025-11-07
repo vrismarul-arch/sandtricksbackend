@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 import connectDB from "./config/db.js";
 import entryRoutes from "./routes/entryRoutes.js";
@@ -13,6 +14,7 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:5173",
   "https://enquiry-from.netlify.app",
+  "https://your-live-frontend.com", // replace with your live domain
 ];
 
 app.use(cors({
@@ -35,10 +37,14 @@ app.use((req, res, next) => {
   next();
 });
 
-// --- Serve uploads ---
+// --- Ensure uploads folder exists ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+const uploadDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
+
+// --- Serve uploads ---
+app.use("/uploads", express.static(uploadDir));
 
 // --- Routes ---
 app.use("/api/entries", entryRoutes);

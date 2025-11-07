@@ -1,19 +1,16 @@
 import Entry from "../models/Entry.js";
 import nodemailer from "nodemailer";
-import dotenv from "dotenv";
-dotenv.config();
 
 export const addEntry = async (req, res) => {
   try {
-    // --- Process uploaded files ---
     const files = req.files || [];
     const imagePaths = files.map(file => file.filename);
 
-    // --- Parse addons array safely ---
+    // Parse addons safely
     let addonsArray = [];
     try { addonsArray = JSON.parse(req.body.addons || "[]"); } catch {}
 
-    // --- Save entry in MongoDB ---
+    // Save entry in MongoDB
     const entry = new Entry({
       ...req.body,
       addons: addonsArray,
@@ -21,7 +18,7 @@ export const addEntry = async (req, res) => {
     });
     await entry.save();
 
-    // --- Send confirmation email ---
+    // Send confirmation email if email exists
     if (req.body.email) {
       try {
         const transporter = nodemailer.createTransport({
@@ -30,7 +27,7 @@ export const addEntry = async (req, res) => {
           secure: true,
           auth: {
             user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS, // App Password without spaces
+            pass: process.env.EMAIL_PASS, // Gmail App Password
           },
         });
 
@@ -69,7 +66,6 @@ export const addEntry = async (req, res) => {
       }
     }
 
-    // --- Respond success ---
     res.json({ status: "success", message: "Booking submitted successfully!" });
 
   } catch (err) {
