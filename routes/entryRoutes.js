@@ -4,17 +4,13 @@ import { addEntry } from "../controllers/entries.js";
 
 const router = express.Router();
 
-// Multer setup
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "uploads/"),
-  filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname),
+  filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname)
 });
 const upload = multer({ storage });
 
-// --- OPTIONS preflight handler ---
-router.options("/add", (req, res) => res.sendStatus(200));
-
-// POST /api/entries/add
+router.options("/add", (req, res) => res.sendStatus(200)); // preflight
 router.post("/add", upload.array("images", 5), addEntry);
 
 export default router;

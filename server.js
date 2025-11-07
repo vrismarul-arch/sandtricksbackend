@@ -17,8 +17,8 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) callback(null, true);
-    else callback(new Error("CORS policy: This origin is not allowed"));
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error("CORS policy: This origin is not allowed"));
   },
   credentials: true,
   methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
@@ -29,7 +29,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// --- Logging middleware ---
+// --- Logging ---
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] [${req.method}] ${req.originalUrl}`);
   next();
