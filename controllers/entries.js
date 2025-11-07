@@ -5,9 +5,11 @@ dotenv.config();
 
 export const addEntry = async (req, res) => {
   try {
+    // 1️⃣ Process uploaded files
     const files = req.files || [];
     const imagePaths = files.map(file => file.filename);
 
+    // 2️⃣ Parse addons array safely
     let addonsArray = [];
     try {
       addonsArray = JSON.parse(req.body.addons || "[]");
@@ -15,7 +17,7 @@ export const addEntry = async (req, res) => {
       addonsArray = [];
     }
 
-    // Save booking in DB
+    // 3️⃣ Save entry in MongoDB
     const entry = new Entry({
       ...req.body,
       addons: addonsArray,
@@ -23,12 +25,17 @@ export const addEntry = async (req, res) => {
     });
     await entry.save();
 
-    // Attempt sending email (but do not block)
+    // 4️⃣ Send email (if email provided)
     if (req.body.email) {
       try {
         const transporter = nodemailer.createTransport({
-          service: "gmail",
-          auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+          host: "smtp.gmail.com",
+          port: 465,
+          secure: true, // true for 465
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS, // use App Password
+          },
         });
 
         const mailOptions = {
@@ -58,15 +65,17 @@ export const addEntry = async (req, res) => {
           </div>`
         };
 
-        transporter.sendMail(mailOptions)
-          .then(() => console.log("✅ Confirmation email sent"))
-          .catch(err => console.warn("⚠ Email failed:", err.message));
-      } catch (e) {
-        console.warn("⚠ Nodemailer setup error:", e.message);
+        await transporter.sendMail(mailOptions);
+        console.log("✅ Confirmation email sent to", req.body.email);
+
+      } catch (err) {
+        console.warn("⚠ Failed to send email:", err.message);
       }
     }
 
+    // 5️⃣ Respond success
     res.json({ status: "success", message: "Booking submitted successfully!" });
+
   } catch (err) {
     console.error("Booking submission error:", err);
     res.status(500).json({ status: "error", message: err.message });
