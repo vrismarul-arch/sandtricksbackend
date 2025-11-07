@@ -9,10 +9,10 @@ import entryRoutes from "./routes/entryRoutes.js";
 dotenv.config();
 const app = express();
 
-// --- CORS setup ---
+// --- CORS ---
 const allowedOrigins = [
-  "http://localhost:5173",           // local dev
-  "https://enquiry-from.netlify.app" // live frontend
+  "http://localhost:5173",
+  "https://enquiry-from.netlify.app",
 ];
 
 app.use(cors({

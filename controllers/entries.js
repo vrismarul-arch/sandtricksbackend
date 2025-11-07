@@ -11,11 +11,7 @@ export const addEntry = async (req, res) => {
 
     // --- Parse addons array safely ---
     let addonsArray = [];
-    try {
-      addonsArray = JSON.parse(req.body.addons || "[]");
-    } catch {
-      addonsArray = [];
-    }
+    try { addonsArray = JSON.parse(req.body.addons || "[]"); } catch {}
 
     // --- Save entry in MongoDB ---
     const entry = new Entry({
@@ -34,7 +30,7 @@ export const addEntry = async (req, res) => {
           secure: true,
           auth: {
             user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS, // App password, no spaces
+            pass: process.env.EMAIL_PASS, // App Password without spaces
           },
         });
 
