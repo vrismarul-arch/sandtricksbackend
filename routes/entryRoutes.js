@@ -4,18 +4,17 @@ import { addEntry } from "../controllers/entries.js";
 
 const router = express.Router();
 
-// Multer storage config
+// --- Multer storage ---
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "uploads/"),
   filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname)
 });
-
 const upload = multer({ storage });
 
-// Preflight
+// --- Preflight OPTIONS ---
 router.options("/add", (req, res) => res.sendStatus(200));
 
-// POST route for adding entry
+// --- POST route ---
 router.post("/add", upload.array("images", 5), addEntry);
 
 export default router;

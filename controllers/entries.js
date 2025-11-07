@@ -5,11 +5,11 @@ dotenv.config();
 
 export const addEntry = async (req, res) => {
   try {
-    // 1️⃣ Process uploaded files
+    // --- Process uploaded files ---
     const files = req.files || [];
     const imagePaths = files.map(file => file.filename);
 
-    // 2️⃣ Parse addons array safely
+    // --- Parse addons array safely ---
     let addonsArray = [];
     try {
       addonsArray = JSON.parse(req.body.addons || "[]");
@@ -17,7 +17,7 @@ export const addEntry = async (req, res) => {
       addonsArray = [];
     }
 
-    // 3️⃣ Save entry in MongoDB
+    // --- Save entry in MongoDB ---
     const entry = new Entry({
       ...req.body,
       addons: addonsArray,
@@ -25,16 +25,16 @@ export const addEntry = async (req, res) => {
     });
     await entry.save();
 
-    // 4️⃣ Send email (if email provided)
+    // --- Send confirmation email ---
     if (req.body.email) {
       try {
         const transporter = nodemailer.createTransport({
           host: "smtp.gmail.com",
           port: 465,
-          secure: true, // true for 465
+          secure: true,
           auth: {
             user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS, // use App Password
+            pass: process.env.EMAIL_PASS, // App password, no spaces
           },
         });
 
@@ -73,7 +73,7 @@ export const addEntry = async (req, res) => {
       }
     }
 
-    // 5️⃣ Respond success
+    // --- Respond success ---
     res.json({ status: "success", message: "Booking submitted successfully!" });
 
   } catch (err) {
