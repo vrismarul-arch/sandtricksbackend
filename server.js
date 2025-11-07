@@ -1,3 +1,5 @@
+// server.js
+
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -14,7 +16,7 @@ const app = express();
 // --- CORS ---
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://enquiry-from.netlify.app",
+  "https://enquiry-from.netlify.app", // Your live frontend URL
 ];
 
 app.use(cors({
