@@ -13,12 +13,13 @@ const app = express();
 // --- CORS ---
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://enquiry-from.netlify.app",
+  "https://enquiry-from.netlify.app", // live frontend URL
 ];
 
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    console.error("CORS blocked:", origin);
     callback(new Error("CORS policy: This origin is not allowed"));
   },
   credentials: true,
@@ -32,7 +33,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // --- Logging ---
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] [${req.method}] ${req.originalUrl}`);
+  console.log(`[${new Date().toISOString()}] [${req.method}] ${req.originalUrl} from ${req.headers.origin}`);
   next();
 });
 

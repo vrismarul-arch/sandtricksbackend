@@ -3,14 +3,15 @@ import nodemailer from "nodemailer";
 
 export const addEntry = async (req, res) => {
   try {
-    const files = req.files || [];
-    const imagePaths = files.map(file => file.filename);
+    console.log("📌 req.body:", req.body);
+    console.log("📌 req.files:", req.files);
 
-    // Parse addons safely
+    const files = req.files || [];
+    const imagePaths = files.map(f => f.filename);
+
     let addonsArray = [];
     try { addonsArray = JSON.parse(req.body.addons || "[]"); } catch {}
 
-    // Save entry in MongoDB
     const entry = new Entry({
       ...req.body,
       addons: addonsArray,
@@ -18,7 +19,6 @@ export const addEntry = async (req, res) => {
     });
     await entry.save();
 
-    // Send confirmation email if email exists
     if (req.body.email) {
       try {
         const transporter = nodemailer.createTransport({
@@ -35,41 +35,25 @@ export const addEntry = async (req, res) => {
           from: process.env.EMAIL_USER,
           to: req.body.email,
           subject: "🎨 Sand Art Booking Confirmation",
-          html: `<div style="font-family:Arial,sans-serif; max-width:600px; margin:auto; border:1px solid #ddd; border-radius:8px;">
-            <div style="background:#2c7da1; color:white; padding:20px; text-align:center;">
-              <h1>Sand Art Booking Confirmed</h1>
-            </div>
-            <div style="padding:20px;">
-              <p>Hi <strong>${req.body.name}</strong>,</p>
-              <p>Thank you for booking your sand art event. Event details:</p>
-              <table style="width:100%; border-collapse:collapse;">
-                <tr><td><strong>Event Type:</strong></td><td>${req.body.eventType}</td></tr>
-                <tr><td><strong>Date:</strong></td><td>${req.body.date}</td></tr>
-                <tr><td><strong>Venue:</strong></td><td>${req.body.venue || "—"}</td></tr>
-                <tr><td><strong>Audience Size:</strong></td><td>${req.body.audienceSize}</td></tr>
-                <tr><td><strong>Duration:</strong></td><td>${req.body.duration}</td></tr>
-                <tr><td><strong>Add-ons:</strong></td><td>${addonsArray.join(", ") || "None"}</td></tr>
-                <tr><td><strong>Notes:</strong></td><td>${req.body.notes || "None"}</td></tr>
-                <tr><td><strong>Uploaded Images:</strong></td><td>${imagePaths.length} file(s)</td></tr>
-              </table>
-              <p>We will contact you shortly to finalize your booking.</p>
-              <p>Thanks,<br/><strong>Sand Art Team</strong></p>
-            </div>
+          html: `<div style="font-family:Arial,sans-serif;">
+            <h2>Hi ${req.body.name}, your booking is confirmed!</h2>
+            <p>Event Type: ${req.body.eventType}</p>
+            <p>Date: ${req.body.date}</p>
+            <p>Audience: ${req.body.audienceSize}</p>
+            <p>Duration: ${req.body.duration}</p>
           </div>`
         };
 
         await transporter.sendMail(mailOptions);
-        console.log("✅ Confirmation email sent to", req.body.email);
-
+        console.log("✅ Email sent to", req.body.email);
       } catch (err) {
-        console.warn("⚠ Failed to send email:", err.message);
+        console.warn("⚠ Email failed:", err.message);
       }
     }
 
-    res.json({ status: "success", message: "Booking submitted successfully!" });
-
+    res.json({ status: "success", message: "Booking submitted!" });
   } catch (err) {
-    console.error("Booking submission error:", err);
+    console.error("❌ Booking submission error:", err);
     res.status(500).json({ status: "error", message: err.message });
   }
 };

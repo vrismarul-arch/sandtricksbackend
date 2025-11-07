@@ -14,4 +14,7 @@ const upload = multer({ storage });
 // --- POST route ---
 router.post("/add", upload.array("images", 5), addEntry);
 
+// --- Preflight ---
+router.options("/add", (req, res) => res.sendStatus(200));
+
 export default router;
