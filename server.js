@@ -1,4 +1,3 @@
-// server.js
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -8,32 +7,29 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 dotenv.config();
+
 const app = express();
 
-// --- MongoDB connection ---
-const MONGO_URL = process.env.MONGO_URI;
-mongoose.connect(MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true })
+// --- MongoDB Connection ---
+const MONGO_URI = process.env.MONGO_URI;
+mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log("✅ MongoDB connected"))
   .catch(err => console.error("❌ MongoDB connection error:", err));
 
 // --- Middleware ---
-app.use(cors({
-  origin: "*",
-  methods: ["GET","POST","PUT","DELETE","OPTIONS"],
-  allowedHeaders: ["Content-Type","Authorization"]
-}));
+app.use(cors({ origin: "*", methods: ["GET","POST","PUT","DELETE","OPTIONS"], allowedHeaders: ["Content-Type","Authorization"] }));
 app.use(express.json());
 
-// --- Serve uploads ---
+// --- Static uploads folder ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// --- Routes ---
+// --- API routes ---
 app.use("/api/entries", entryRoutes);
 
-// --- Root route ---
-app.get("/", (req, res) => res.send("✅ Sand Art Backend is running"));
+// --- Health check ---
+app.get("/", (req, res) => res.send("✅ Sand Art Backend Running"));
 
 // --- Start server ---
 const PORT = process.env.PORT || 5000;

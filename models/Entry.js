@@ -1,17 +1,17 @@
 import mongoose from "mongoose";
 
 const entrySchema = new mongoose.Schema({
-  eventType: String,
-  date: String,
-  venue: String,
-  audienceSize: String,
-  duration: String,
-  addons: [String],
-  images: [String],
-  name: String,
-  phoneNumber: String,
-  email: String,
-  notes: String,
+  eventType: { type: String, required: true },
+  date: { type: String, required: true },
+  venue: { type: String },
+  audienceSize: { type: String, required: true },
+  duration: { type: String, required: true },
+  addons: { type: [String], default: [] },
+  images: { type: [String], default: [] },
+  name: { type: String, required: true },
+  phoneNumber: { type: String, required: true },
+  email: { type: String },
+  notes: { type: String },
 }, { timestamps: true });
 
 export default mongoose.model("Entry", entrySchema);
