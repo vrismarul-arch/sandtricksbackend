@@ -17,14 +17,21 @@ dotenv.config();
 const app = express();
 
 // --- CORS Configuration ---
+// Whitelist both dev and production frontend URLs
 const allowedOrigins = [
-  "http://localhost:5173",             // React dev
-     // Production
-  "https://enquiry-from.netlify.app/",    // Production
+  "http://localhost:5173",                   // Local dev
+  "https://enquiry-from.netlify.app",       // Production frontend
+  "https://your-frontend-domain.com",       // Replace with actual deployed frontend
 ];
 
 const corsOptions = {
-  origin: allowedOrigins,
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true); // Allow requests with no origin (like Postman)
+    } else {
+      callback(new Error("CORS policy: This origin is not allowed"));
+    }
+  },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
@@ -32,35 +39,45 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// --- JSON parsing middleware ---
+// --- JSON and URL-encoded middleware ---
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// --- Debug logging middleware ---
+// --- Debug logging ---
 app.use((req, res, next) => {
-  console.log(`[${req.method}] ${req.originalUrl}`);
+  console.log(`[${new Date().toISOString()}] [${req.method}] ${req.originalUrl}`);
   next();
 });
 
-// --- Serve static files (if needed) ---
+// --- Serve uploaded files ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // --- Routes ---
 app.use("/api/entries", entryRoutes);
-
+app.use("/api/admin", adminRoutes);
+app.use("/api/leads", leadsRoutes);
 
 // --- Health check route ---
 app.get("/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-// --- Connect to database ---
+// --- Connect to MongoDB ---
 connectDB();
 
-// --- Start server ---
+// --- Start server on dynamic port ---
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
+});
+
+// --- Global error handler for CORS and other errors ---
+app.use((err, req, res, next) => {
+  console.error("Global error:", err.message);
+  if (err.message.includes("CORS")) {
+    return res.status(403).json({ status: "error", message: err.message });
+  }
+  res.status(500).json({ status: "error", message: err.message || "Internal Server Error" });
 });
