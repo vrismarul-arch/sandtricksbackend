@@ -19,8 +19,8 @@ const app = express();
 // --- CORS Configuration ---
 const allowedOrigins = [
   "http://localhost:5173",             // React dev
-  "https://svj-security.netlify.app", // Production
-  "http://svjsmartsolutions.shop",    // Production
+     // Production
+  "https://enquiry-from.netlify.app/",    // Production
 ];
 
 const corsOptions = {
