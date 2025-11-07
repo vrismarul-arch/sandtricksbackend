@@ -1,159 +1,106 @@
-const Entry = require("../models/Entry");
-const supabase = require("../config/supabaseClient");
-const multer = require("multer");
-const priceList = require("../utils/priceList"); // 🧾 import price data
+import Entry from "../models/Entry.js";
+import nodemailer from "nodemailer";
+import dotenv from "dotenv";
+dotenv.config();
 
-// Multer memory storage for file uploads
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
-
-/** ---------------------------
- *  ADD NEW ENTRY
- * --------------------------*/
-const addEntry = async (req, res) => {
+/**
+ * Controller: Add a new booking entry and send confirmation email
+ */
+export const addEntry = async (req, res) => {
   try {
-    const { name, phoneNumber, email, companyName, requirement, requirementType, brands } = req.body;
+    // --- Handle uploaded files ---
+    const files = req.files || [];
+    const imagePaths = files.map(file => file.filename);
 
-    // Validate required fields
-    if (!name || !phoneNumber || !email || !companyName || !requirementType) {
-      return res.status(400).json({ message: "All required fields must be provided" });
-    }
+    // --- Save entry to MongoDB ---
+    const entry = new Entry({
+      ...req.body,
+      addons: JSON.parse(req.body.addons || "[]"),
+      images: imagePaths,
+    });
+    await entry.save();
 
-    /** ---------------------------
-     *  Upload images to Supabase
-     * --------------------------*/
-    let imageUrls = [];
-    if (req.files && req.files.length > 0) {
-      for (const file of req.files) {
-        const fileName = `entries/${Date.now()}-${file.originalname}`;
-        const { error } = await supabase.storage.from("ads").upload(fileName, file.buffer, {
-          contentType: file.mimetype,
-        });
-        if (error) throw error;
-
-        const { data } = supabase.storage.from("ads").getPublicUrl(fileName);
-        imageUrls.push(data.publicUrl);
-      }
-    }
-
-    /** ---------------------------
-     *  Parse brands
-     * --------------------------*/
-    let parsedBrands = [];
-    if (brands) {
-      try {
-        parsedBrands = JSON.parse(brands); // if sent as JSON string
-      } catch {
-        parsedBrands = Array.isArray(brands) ? brands : [brands]; // fallback if array
-      }
-    }
-
-    /** ---------------------------
-     *  Price Calculation
-     * --------------------------*/
-    let totalPrice = 0;
-    const brandPrices = [];
-
-    parsedBrands.forEach((brand) => {
-      const match = priceList.find(
-        (item) =>
-          item.product.toLowerCase() === requirementType.toLowerCase() &&
-          item.brand.toLowerCase() === brand.toLowerCase()
-      );
-      if (match) {
-        totalPrice += match.price;
-        brandPrices.push({ brand, price: match.price });
-      }
+    // --- Configure NodeMailer ---
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER, // your Gmail
+        pass: process.env.EMAIL_PASS, // app password
+      },
     });
 
-    /** ---------------------------
-     *  Save to MongoDB
-     * --------------------------*/
-    const newEntry = new Entry({
-      name,
-      phoneNumber,
-      email,
-      companyName,
-      requirement: requirement || "",
-      requirementType,
-      brands: parsedBrands,
-      brandPrices, // store price per brand
-      images: imageUrls,
-      price: totalPrice, // total price
-      status: "Pending", // default status
+    // --- Build modern HTML email template ---
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: req.body.email || process.env.EMAIL_USER, // send to client if provided
+      subject: "🎨 Sand Art Booking Confirmation",
+      html: `
+      <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
+        <div style="background-color: #2c7da1; color: white; padding: 20px; text-align: center;">
+          <h1 style="margin: 0; font-size: 24px;">Sand Art Booking Confirmed</h1>
+        </div>
+        
+        <div style="padding: 20px; color: #333;">
+          <p>Hi <strong>${req.body.name}</strong>,</p>
+          <p>Thank you for booking your sand art event. Here are your event details:</p>
+          
+          <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+            <tr>
+              <td style="padding: 8px; font-weight: bold;">Event Type:</td>
+              <td style="padding: 8px;">${req.body.eventType}</td>
+            </tr>
+            <tr style="background-color: #f9f9f9;">
+              <td style="padding: 8px; font-weight: bold;">Date:</td>
+              <td style="padding: 8px;">${req.body.date}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; font-weight: bold;">Venue:</td>
+              <td style="padding: 8px;">${req.body.venue || "—"}</td>
+            </tr>
+            <tr style="background-color: #f9f9f9;">
+              <td style="padding: 8px; font-weight: bold;">Audience Size:</td>
+              <td style="padding: 8px;">${req.body.audienceSize}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; font-weight: bold;">Duration:</td>
+              <td style="padding: 8px;">${req.body.duration}</td>
+            </tr>
+            <tr style="background-color: #f9f9f9;">
+              <td style="padding: 8px; font-weight: bold;">Add-ons:</td>
+              <td style="padding: 8px;">${(JSON.parse(req.body.addons || "[]")).join(", ") || "None"}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; font-weight: bold;">Notes:</td>
+              <td style="padding: 8px;">${req.body.notes || "None"}</td>
+            </tr>
+            <tr style="background-color: #f9f9f9;">
+              <td style="padding: 8px; font-weight: bold;">Uploaded Images:</td>
+              <td style="padding: 8px;">${imagePaths.length} file(s) uploaded</td>
+            </tr>
+          </table>
+
+          <p>We will contact you shortly to finalize your booking.</p>
+          <p style="margin-top: 40px;">Thanks,<br/><strong>Sand Art Team</strong></p>
+        </div>
+
+        <div style="background-color: #f1f1f1; text-align: center; padding: 10px; font-size: 12px; color: #777;">
+          &copy; ${new Date().getFullYear()} Sand Art. All rights reserved.
+        </div>
+      </div>
+      `
+    };
+
+    // --- Send email ---
+    await transporter.sendMail(mailOptions);
+
+    // --- Response to client ---
+    res.json({
+      status: "success",
+      message: "Booking submitted successfully! Confirmation email sent.",
     });
 
-    await newEntry.save();
-
-    res.status(201).json({
-      message: "Entry saved successfully.",
-      entry: newEntry,
-      totalPrice,
-    });
-  } catch (error) {
-    console.error("Error in addEntry:", error.message);
-    res.status(500).json({ message: "Server error", error: error.message });
+  } catch (err) {
+    console.error("Booking submission error:", err);
+    res.status(500).json({ status: "error", message: err.message });
   }
 };
-
-/** ---------------------------
- *  GET ALL ENTRIES
- * --------------------------*/
-const getAllEntries = async (req, res) => {
-  try {
-    const entries = await Entry.find().sort({ createdAt: -1 });
-    res.json(entries);
-  } catch (error) {
-    console.error("Error fetching entries:", error.message);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-/** ---------------------------
- *  UPDATE STATUS
- * --------------------------*/
-const updateStatus = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
-
-    if (!["Pending", "Action In Progress", "Completed", "Rejected"].includes(status)) {
-      return res.status(400).json({ message: "Invalid status" });
-    }
-
-    const entry = await Entry.findByIdAndUpdate(id, { status }, { new: true });
-    if (!entry) return res.status(404).json({ message: "Entry not found" });
-
-    res.json({ message: "Status updated", entry });
-  } catch (error) {
-    console.error("Error updating status:", error.message);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-/** ---------------------------
- *  DELETE ENTRY
- * --------------------------*/
-const deleteEntry = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const entry = await Entry.findById(id);
-    if (!entry) return res.status(404).json({ message: "Entry not found" });
-
-    // Delete images from Supabase
-    if (entry.images?.length > 0) {
-      for (const url of entry.images) {
-        const path = url.split("/storage/v1/object/public/ads/")[1];
-        if (path) await supabase.storage.from("ads").remove([path]);
-      }
-    }
-
-    await Entry.findByIdAndDelete(id);
-    res.json({ message: "Entry deleted successfully" });
-  } catch (error) {
-    console.error("Error deleting entry:", error.message);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-module.exports = { addEntry, getAllEntries, updateStatus, deleteEntry, upload };
