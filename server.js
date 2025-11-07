@@ -1,63 +1,66 @@
+// server.js
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import mongoose from "mongoose";
-import entryRoutes from "./routes/entries.js";
 import path from "path";
 import { fileURLToPath } from "url";
 
-dotenv.config();
+// --- Import routes ---
+import entryRoutes from "./routes/entryRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
+import leadsRoutes from "./routes/leadsRoutes.js";
 
+// --- Import DB connection ---
+import connectDB from "./config/db.js";
+
+dotenv.config();
 const app = express();
 
-// --- MongoDB Connection ---
-const MONGO_URI = process.env.MONGO_URI;
-mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log("✅ MongoDB connected"))
-  .catch(err => console.error("❌ MongoDB connection error:", err));
-
-// --- Middleware ---
-
-// Allow only your frontend URLs
+// --- CORS Configuration ---
 const allowedOrigins = [
-  "http://localhost:5173",
-  "https://enquiry-from.netlify.app"
+  "http://localhost:5173",             // React dev
+  "https://svj-security.netlify.app", // Production
+  "http://svjsmartsolutions.shop",    // Production
 ];
 
-app.use(cors({
-  origin: function(origin, callback) {
-    // allow requests with no origin (like Postman)
-    if(!origin) return callback(null, true);
-    if(allowedOrigins.indexOf(origin) === -1){
-      const msg = `CORS policy does not allow access from ${origin}`;
-      return callback(new Error(msg), false);
-    }
-    return callback(null, true);
-  },
-  methods: ["GET","POST","PUT","DELETE","OPTIONS"],
-  allowedHeaders: ["Content-Type","Authorization"]
-}));
+const corsOptions = {
+  origin: allowedOrigins,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+};
 
-// Parse JSON body
+app.use(cors(corsOptions));
+
+// --- JSON parsing middleware ---
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// --- Static uploads folder ---
+// --- Debug logging middleware ---
+app.use((req, res, next) => {
+  console.log(`[${req.method}] ${req.originalUrl}`);
+  next();
+});
+
+// --- Serve static files (if needed) ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// --- API routes ---
+// --- Routes ---
 app.use("/api/entries", entryRoutes);
 
-// --- Health check ---
-app.get("/", (req, res) => res.send("✅ Sand Art Backend Running"));
 
-// --- Error handler middleware ---
-app.use((err, req, res, next) => {
-  console.error("❌ Server error:", err.message);
-  res.status(500).json({ status: "error", message: err.message });
+// --- Health check route ---
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
+
+// --- Connect to database ---
+connectDB();
 
 // --- Start server ---
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
