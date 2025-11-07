@@ -17,7 +17,28 @@ mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .catch(err => console.error("❌ MongoDB connection error:", err));
 
 // --- Middleware ---
-app.use(cors({ origin: "*", methods: ["GET","POST","PUT","DELETE","OPTIONS"], allowedHeaders: ["Content-Type","Authorization"] }));
+
+// Allow only your frontend URLs
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://enquiry-from.netlify.app"
+];
+
+app.use(cors({
+  origin: function(origin, callback) {
+    // allow requests with no origin (like Postman)
+    if(!origin) return callback(null, true);
+    if(allowedOrigins.indexOf(origin) === -1){
+      const msg = `CORS policy does not allow access from ${origin}`;
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  methods: ["GET","POST","PUT","DELETE","OPTIONS"],
+  allowedHeaders: ["Content-Type","Authorization"]
+}));
+
+// Parse JSON body
 app.use(express.json());
 
 // --- Static uploads folder ---
@@ -30,6 +51,12 @@ app.use("/api/entries", entryRoutes);
 
 // --- Health check ---
 app.get("/", (req, res) => res.send("✅ Sand Art Backend Running"));
+
+// --- Error handler middleware ---
+app.use((err, req, res, next) => {
+  console.error("❌ Server error:", err.message);
+  res.status(500).json({ status: "error", message: err.message });
+});
 
 // --- Start server ---
 const PORT = process.env.PORT || 5000;
