@@ -1,32 +1,53 @@
-
 import express from "express";
 import cors from "cors";
-import multer from "multer";
-import { addEntry } from "./controllers/entries.js";
+import dotenv from "dotenv";
+import connectDB from "./config/db.js";
+import entryRoutes from "./routes/entryRoutes.js";
 
+dotenv.config();
 const app = express();
 
-// ✅ CORS middleware
+// --- CORS ---
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://enquiry-from.netlify.app",
+];
 app.use(cors({
-  origin: ["https://enquiry-from.netlify.app", "http://localhost:5173"],
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error("CORS policy: This origin is not allowed"));
+  },
+  credentials: true,
   methods: ["GET","POST","OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
+  allowedHeaders: ["Content-Type","Authorization"]
 }));
 
-// ✅ Handle preflight OPTIONS globally
-app.options("*", (req, res) => res.sendStatus(200));
-
-// ✅ Body parsers
+// Body parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ Multer memory storage for Supabase
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
+// Logging
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] [${req.method}] ${req.originalUrl} from ${req.headers.origin}`);
+  next();
+});
 
-// ✅ Routes
-app.post("/api/entries/add", upload.array("images", 5), addEntry);
+// Routes
+app.use("/api/entries", entryRoutes);
 
-// ✅ Start server
+// Health check
+app.get("/health", (req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));
+
+// Connect MongoDB
+connectDB();
+
+// Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error("Global error:", err.message);
+  if (err.message.includes("CORS")) return res.status(403).json({ status: "error", message: err.message });
+  res.status(500).json({ status: "error", message: err.message || "Internal Server Error" });
+});
