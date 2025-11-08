@@ -1,12 +1,9 @@
 import express from "express";
-import { addEntry, getAllEntries } from "../controllers/entries.js";
+import { addEntry, testEmail } from "../controllers/entryController.js";
 
 const router = express.Router();
 
-// POST (No multer, JSON only)
 router.post("/add", addEntry);
-
-// GET
-router.get("/all", getAllEntries);
+router.get("/test-email", testEmail);
 
 export default router;
