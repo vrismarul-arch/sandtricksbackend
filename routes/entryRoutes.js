@@ -3,13 +3,10 @@ import { addEntry, getAllEntries } from "../controllers/entries.js";
 
 const router = express.Router();
 
-// --- POST route ---
+// POST (No multer, JSON only)
 router.post("/add", addEntry);
 
-// --- GET: fetch all entries ---
+// GET
 router.get("/all", getAllEntries);
-
-// --- Preflight (optional) ---
-router.options("/add", (req, res) => res.sendStatus(200));
 
 export default router;
