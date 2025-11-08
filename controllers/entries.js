@@ -13,6 +13,7 @@ export const addEntry = async (req, res) => {
     const entry = new Entry({
       ...data,
       addons: addonsArray,
+      images: [] // *** No image upload now ***
     });
 
     await entry.save();
@@ -69,7 +70,7 @@ export const addEntry = async (req, res) => {
 // --- Get all bookings ---
 export const getAllEntries = async (req, res) => {
   try {
-    const entries = await Entry.find().sort({ createdAt: -1 }); // newest first
+    const entries = await Entry.find().sort({ createdAt: -1 });
     res.json({ status: "success", data: entries });
   } catch (err) {
     console.error("❌ Fetch entries error:", err);
