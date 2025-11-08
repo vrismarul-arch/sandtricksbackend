@@ -1,6 +1,7 @@
 import Entry from "../models/Entry.js";
 import nodemailer from "nodemailer";
 
+// --- Add a booking ---
 export const addEntry = async (req, res) => {
   try {
     const data = req.body;
@@ -61,6 +62,17 @@ export const addEntry = async (req, res) => {
     res.json({ status: "success", message: "Booking submitted!" });
   } catch (err) {
     console.error("❌ Booking submission error:", err);
+    res.status(500).json({ status: "error", message: err.message });
+  }
+};
+
+// --- Get all bookings ---
+export const getAllEntries = async (req, res) => {
+  try {
+    const entries = await Entry.find().sort({ createdAt: -1 }); // newest first
+    res.json({ status: "success", data: entries });
+  } catch (err) {
+    console.error("❌ Fetch entries error:", err);
     res.status(500).json({ status: "error", message: err.message });
   }
 };
